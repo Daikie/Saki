@@ -1,0 +1,18 @@
+body {
+	font-size: 16px;
+	color: #000;
+	background-color: #FFF;
+}
+h1 {
+	color: #206;
+}
+div.box {
+	border-radius: 10px;
+	background-color: #F8C;
+}
+
+table.table td {
+	padding: 5px;
+	text-align: center;
+	vertical-align: bottom;
+}
