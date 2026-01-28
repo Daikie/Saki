@@ -13,6 +13,9 @@ const imageLoader = document.getElementById('imageLoader');
 const preview = document.getElementById('preview');
 const testBtn = document.getElementById('testBtn');
 
+// WebGL（GPU）で止まる場合の回避策：CPUモードを強制
+ml5.tf.setBackend('cpu'); 
+
 // 1. モデルの読み込み
 console.log("モデルの読み込みを開始します...");
 classifier = ml5.imageClassifier('MobileNet', () => {
