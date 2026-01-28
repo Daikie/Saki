@@ -1,4 +1,11 @@
-// ... (priceDatabase の定義は変更なし)
+// 価格データベース（本来は別JSONファイルにすると管理が楽です）
+const priceDatabase = {
+    "teddy": { name: "ぬいぐるみ", price: "500〜2,000", desc: "状態やブランドにより変動します。" },
+    "toy car": { name: "ミニカー", price: "300〜1,500", desc: "トミカ等のビンテージ品は高値がつくことも。" },
+    "block": { name: "積み木/知育玩具", price: "1,000〜4,000", desc: "木製のおもちゃは安定した人気があります。" },
+    "doll": { name: "人形", price: "800〜5,000", desc: "関節の緩みや汚れをチェックしてください。" },
+    "default": { name: "その他のおもちゃ", price: "100〜", desc: "一般的な中古価格です。" }
+};
 
 let classifier;
 const statusText = document.getElementById('status');
