@@ -7,82 +7,77 @@ const priceDatabase = {
     "default": { name: "その他のおもちゃ", price: "100〜", desc: "一般的な中古価格です。" }
 };
 
+// ... (priceDatabase の定義はそのまま)
+
 let classifier;
 const statusText = document.getElementById('status');
-const imageLoader = document.getElementById('imageLoader');
 const preview = document.getElementById('preview');
-const testBtn = document.getElementById('testBtn');
 
-// WebGL（GPU）で止まる場合の回避策：CPUモードを強制
-ml5.tf.setBackend('cpu'); 
-
-// 1. モデルの読み込み
-console.log("モデルの読み込みを開始します...");
-classifier = ml5.imageClassifier('MobileNet', () => {
-    console.log("✅ モデルの読み込みが正常に完了しました");
-    statusText.innerText = '✅ 準備完了！画像をアップロードまたはテストボタンを押してください';
-});
-
-// 2. アップロード処理（既存）
-imageLoader.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        preview.src = event.target.result;
-        preview.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-});
-
-// 3. サーバー上の teddy.jpeg を読み込む処理
-testBtn.addEventListener('click', () => {
-    console.log("サンプル画像の読み込みを開始します: teddy.jpeg");
-    // preview.onload を先に設定してから src を代入する
-    preview.onload = () => {
-        console.log("サンプル画像のデコードが完了しました。解析を開始します。");
-        classifyImage();
-    };
-    preview.src = "teddy.jpeg"; // 同じディレクトリのファイルを指定
-    preview.style.display = 'block';
-});
-
-// 画像が読み込まれたら自動的に解析する（アップロード時も対応）
-preview.onload = () => {
-    if (preview.src) {
-        classifyImage();
-    }
-};
-
-// 4. 解析処理
-function classifyImage() {
-    statusText.innerText = '査定中...';
-    console.log("ml5の解析（classify）を実行...");
-
-    // ml5のメソッドに直接DOM要素を渡す
-    classifier.classify(preview, (err, results) => {
-        console.log("コールバック関数内に入りました"); // ここが表示されるか確認
-        if (err) {
-            console.error("解析エラー:", err);
-            statusText.innerText = '解析中にエラーが発生しました';
-            return;
-        }
-
-        console.log("解析成功:", results);
-        const topResult = results[0].label.toLowerCase();
-        statusText.innerText = '査定完了';
+async function initApp() {
+    try {
+        console.log("TensorFlow.js の準備を確認中...");
+        // バックエンドを CPU に強制し、準備ができるまで待機
+        await ml5.tf.setBackend('cpu'); 
+        await ml5.tf.ready();
         
-        let match = priceDatabase["default"];
-        for (let key in priceDatabase) {
-            if (topResult.includes(key)) {
-                match = priceDatabase[key];
-                break;
-            }
-        }
+        console.log("現在のバックエンド:", ml5.tf.getBackend());
+        statusText.innerText = 'モデルを読み込み中...';
 
-        document.getElementById('result').style.display = 'block';
-        document.getElementById('label').innerText = match.name;
-        document.getElementById('price').innerText = match.price;
-        document.getElementById('description').innerText = match.desc;
-    });
+        // モデルの初期化
+        classifier = await ml5.imageClassifier('MobileNet');
+        console.log("✅ モデルの読み込み完了");
+        statusText.innerText = '✅ 準備完了！画像をアップロードしてください';
+    } catch (error) {
+        console.error("初期化エラー:", error);
+        statusText.innerText = '初期化に失敗しました';
+    }
 }
+
+// アプリの起動
+initApp();
+
+// 判定処理（Canvasを介して解析）
+async function classifyImage() {
+    if (!classifier) return;
+    
+    statusText.innerText = '査定中...';
+    console.log("解析プロセス開始 (Canvas描画経由)");
+
+    // iOS Safari対策: img を直接渡さず Canvas に写してから解析
+    const canvas = document.createElement('canvas');
+    canvas.width = preview.width || preview.naturalWidth;
+    canvas.height = preview.height || preview.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(preview, 0, 0);
+
+    try {
+        // 解析実行
+        const results = await classifier.classify(canvas);
+        console.log("解析成功:", results);
+        displayResult(results[0].label.toLowerCase());
+    } catch (err) {
+        console.error("解析エラー:", err);
+        statusText.innerText = '解析に失敗しました';
+    }
+}
+
+function displayResult(label) {
+    statusText.innerText = '査定完了';
+    let match = priceDatabase["default"];
+    for (let key in priceDatabase) {
+        if (label.includes(key)) {
+            match = priceDatabase[key];
+            break;
+        }
+    }
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('label').innerText = match.name;
+    document.getElementById('price').innerText = match.price;
+    document.getElementById('description').innerText = match.desc;
+}
+
+// テストボタンやアップロード時の処理は前回の preview.onload 経由で OK
+document.getElementById('testBtn').onclick = () => {
+    preview.src = "teddy.jpeg";
+    preview.onload = () => classifyImage();
+};
