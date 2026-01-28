@@ -1,27 +1,11 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>レトロ玩具・中古価格予測</title>
-    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
-    <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        #preview { width: 100%; max-height: 300px; object-fit: contain; margin-top: 20px; display: none; }
-        .result-area { margin-top: 20px; padding: 15px; border-top: 2px solid #eee; }
-        .price { font-size: 24px; color: #e67e22; font-weight: bold; }
-        #status { color: #888; font-size: 0.9em; }
-    </style>
-</head>
-<body>
-
 <div class="container">
     <h2>🧸 おもちゃ査定アプリ</h2>
     <p id="status">モデルを読み込み中...</p>
     
     <input type="file" id="imageLoader" accept="image/*">
-    <img id="preview">
+    <button id="testBtn" style="margin-top: 10px;">サンプル(teddy.jpeg)でテスト</button>
+    
+    <img id="preview" crossorigin="anonymous">
 
     <div id="result" class="result-area" style="display: none;">
         <h3>判定結果: <span id="label">---</span></h3>
@@ -30,7 +14,3 @@
         <p id="description" style="font-size: 0.9em; color: #666;"></p>
     </div>
 </div>
-
-<script src="script.js"></script>
-</body>
-</html>
