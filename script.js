@@ -1,11 +1,4 @@
-// 価格データベース（本来は別JSONファイルにすると管理が楽です）
-const priceDatabase = {
-    "teddy": { name: "ぬいぐるみ", price: "500〜2,000", desc: "状態やブランドにより変動します。" },
-    "toy car": { name: "ミニカー", price: "300〜1,500", desc: "トミカ等のビンテージ品は高値がつくことも。" },
-    "block": { name: "積み木/知育玩具", price: "1,000〜4,000", desc: "木製のおもちゃは安定した人気があります。" },
-    "doll": { name: "人形", price: "800〜5,000", desc: "関節の緩みや汚れをチェックしてください。" },
-    "default": { name: "その他のおもちゃ", price: "100〜", desc: "一般的な中古価格です。" }
-};
+// ... (priceDatabaseの定義はそのまま)
 
 let classifier;
 const statusText = document.getElementById('status');
@@ -13,7 +6,9 @@ const imageLoader = document.getElementById('imageLoader');
 const preview = document.getElementById('preview');
 
 // 1. モデルの読み込み
+console.log("モデルの読み込みを開始します...");
 classifier = ml5.imageClassifier('MobileNet', () => {
+    console.log("✅ モデルの読み込みが正常に完了しました");
     statusText.innerText = '✅ 準備完了！画像をアップロードしてください';
 });
 
@@ -22,12 +17,19 @@ imageLoader.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    console.log("画像ファイルを受け取りました:", file.name);
+
     const reader = new FileReader();
     reader.onload = (event) => {
         preview.src = event.target.result;
         preview.style.display = 'block';
-        // 画像解析開始
-        classifyImage();
+        console.log("プレビュー表示完了。解析へ進みます...");
+        
+        // 画像が完全に読み込まれるのを待ってから解析
+        preview.onload = () => {
+            console.log("画像デコード完了。classifyImageを実行します。");
+            classifyImage();
+        };
     };
     reader.readAsDataURL(file);
 });
@@ -35,21 +37,34 @@ imageLoader.addEventListener('change', (e) => {
 // 3. 画像解析と結果表示
 function classifyImage() {
     statusText.innerText = '査定中...';
+    console.log("ml5の解析（classify）を開始します...");
+
+    // classifierが定義されているか確認
+    if (!classifier) {
+        console.error("エラー: classifierが初期化されていません");
+        return;
+    }
+
     classifier.classify(preview, (err, results) => {
         if (err) {
-            console.error(err);
+            console.error("解析中にエラーが発生しました:", err);
+            statusText.innerText = 'エラーが発生しました';
             return;
         }
 
-        // 解析結果の取得（一番確率が高いもの）
+        console.log("解析成功！結果データ:", results);
+
+        // 解析結果の取得
         const topResult = results[0].label.toLowerCase();
+        console.log("トップ判定ラベル:", topResult);
+        
         statusText.innerText = '査定完了';
         
-        // データベースから照合
         let match = priceDatabase["default"];
         for (let key in priceDatabase) {
             if (topResult.includes(key)) {
                 match = priceDatabase[key];
+                console.log("データベースにマッチしました:", key);
                 break;
             }
         }
@@ -61,4 +76,3 @@ function classifyImage() {
         document.getElementById('description').innerText = match.desc;
     });
 }
-
