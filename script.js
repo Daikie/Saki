@@ -36,6 +36,75 @@ async function initApp() {
 // アプリの起動
 initApp();
 
+// ... (データベースや initApp はそのまま)
+
+// 2. 画像がアップロードされた時の処理
+imageLoader.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    console.log("ファイルが選択されました:", file.name, "サイズ:", file.size);
+    statusText.innerText = '画像を読み込み中...';
+
+    try {
+        // FileReaderをPromise化して、確実に読み込み完了を待つ
+        const imageData = await readFileAsDataURL(file);
+        
+        // preview要素に画像をセット
+        preview.src = imageData;
+        preview.style.display = 'block';
+
+        // iOS対策: 少し待機してから、画像が本当に表示可能か確認して解析へ
+        preview.onload = () => {
+            console.log("画像の表示準備が完了しました。解析を開始します。");
+            classifyImage();
+        };
+    } catch (err) {
+        console.error("ファイル読み込みエラー:", err);
+        statusText.innerText = 'ファイルの読み込みに失敗しました';
+    }
+});
+
+// Helper: ファイルを読み込むPromise
+function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => resolve(event.target.result);
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+    });
+}
+
+// 判定処理（前回成功した Canvas 経由のロジック）
+async function classifyImage() {
+    if (!classifier) {
+        console.error("モデルが準備できていません");
+        return;
+    }
+    
+    statusText.innerText = '査定中...';
+    console.log("解析プロセス開始 (Canvas描画経由)");
+
+    const canvas = document.createElement('canvas');
+    // iOS Safariでサイズが大きすぎる場合を考慮し、最大幅を1000px程度に制限するのも有効
+    const scale = Math.min(1, 1000 / preview.naturalWidth); 
+    canvas.width = preview.naturalWidth * scale;
+    canvas.height = preview.naturalHeight * scale;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(preview, 0, 0, canvas.width, canvas.height);
+
+    try {
+        const results = await classifier.classify(canvas);
+        console.log("解析成功:", results);
+        displayResult(results[0].label.toLowerCase());
+    } catch (err) {
+        console.error("解析エラー:", err);
+        statusText.innerText = '解析に失敗しました。もう一度試してください。';
+    }
+}
+
+
 // 判定処理（Canvasを介して解析）
 async function classifyImage() {
     if (!classifier) return;
